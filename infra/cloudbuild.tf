@@ -1,7 +1,7 @@
-resource "google_cloudbuild_trigger" "slack-bot" {
+resource "google_cloudbuild_trigger" "slack_chatgpt_bot" {
   provider = google
 
-  name     = "slack-bot"
+  name     = "slack-chatgpt-bot"
   disabled = false
 
   included_files = [
@@ -10,10 +10,12 @@ resource "google_cloudbuild_trigger" "slack-bot" {
     "cloudbuild.yaml",
     "requirements.txt",
   ]
-
-  trigger_template {
-    branch_name = "main"
-    repo_name   = "https://github.com/cancaonovachor/chatgpt-slackbot-on-cloudrun"
+  github {
+    owner = "cancaonovachor"
+    name  = "chatgpt-slackbot-on-cloudrun"
+    push {
+      branch = "^main$"
+    }
   }
 
   filename = "cloudbuild.yaml"

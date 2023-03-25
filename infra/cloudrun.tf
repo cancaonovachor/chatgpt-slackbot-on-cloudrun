@@ -1,11 +1,11 @@
 resource "google_cloud_run_service" "default" {
-  name     = "slack-chatbot"
+  name     = "slack-chatgpt-bot"
   location = var.region
 
   template {
     spec {
       containers {
-        image = "gcr.io/${var.project_id}/slack-chatbot"
+        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/slack-chatgpt-bot"
 
         env {
           name  = "OPENAI_API_KEY"
@@ -23,6 +23,9 @@ resource "google_cloud_run_service" "default" {
     percent         = 100
     latest_revision = true
   }
+  depends_on = [
+    google_cloudbuild_trigger.slack_chatgpt_bot
+  ]
 }
 
 
