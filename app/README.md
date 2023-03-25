@@ -1,1 +1,0 @@
-# chatgpt-slackbot-on-cloudrun
