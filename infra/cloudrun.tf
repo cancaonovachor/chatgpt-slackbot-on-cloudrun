@@ -1,11 +1,11 @@
 resource "google_cloud_run_service" "default" {
-  name     = "slack-chatgpt-bot"
+  name     = local.service_name
   location = var.region
 
   template {
     spec {
       containers {
-        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/slack-chatgpt-bot"
+        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${local.service_name}"
 
         env {
           name  = "OPENAI_API_KEY"

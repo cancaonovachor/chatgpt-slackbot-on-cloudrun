@@ -1,7 +1,7 @@
 resource "google_cloudbuild_trigger" "slack_chatgpt_bot" {
   provider = google
 
-  name     = "slack-chatgpt-bot"
+  name     = local.service_name
   disabled = false
 
   included_files = [
