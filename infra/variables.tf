@@ -15,8 +15,8 @@ variable "openai_api_key" {
   sensitive   = true
 }
 
-variable "slack_signing_secret" {
+variable "slack_token" {
   type        = string
-  description = "The Slack signing secret."
+  description = "The Slack Token."
   sensitive   = true
 }

@@ -1,0 +1,10 @@
+FROM golang:1.19-alpine3.17
+
+ENV ROOT=/go/src/app
+WORKDIR ${ROOT}
+
+RUN apk update && apk add git
+
+COPY ./ ${ROOT}
+
+RUN go mod tidy

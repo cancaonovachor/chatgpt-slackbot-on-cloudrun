@@ -9,9 +9,6 @@ terraform {
   }
 }
 
-locals {
-  service_name = "slack-chatgpt-bot"
-}
 
 provider "google" {
   region  = var.region

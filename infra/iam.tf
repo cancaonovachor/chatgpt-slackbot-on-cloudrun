@@ -1,12 +1,30 @@
-resource "google_cloud_run_service_iam_policy" "default" {
-  location = google_cloud_run_service.default.location
-  project  = google_cloud_run_service.default.project
-  service  = google_cloud_run_service.default.name
+resource "google_cloud_run_service_iam_policy" "gptapp_cloud_run_service" {
+  location = google_cloud_run_service.gptapp_cloud_run_service.location
+  project  = google_cloud_run_service.gptapp_cloud_run_service.project
+  service  = google_cloud_run_service.gptapp_cloud_run_service.name
 
-  policy_data = data.google_iam_policy.default.policy_data
+  policy_data = data.google_iam_policy.gptapp_cloud_run_service.policy_data
 }
 
-data "google_iam_policy" "default" {
+data "google_iam_policy" "gptapp_cloud_run_service" {
+  binding {
+    role = "roles/run.invoker"
+
+    members = [
+      "allUsers",
+    ]
+  }
+}
+
+resource "google_cloud_run_service_iam_policy" "pubsubapp_cloud_run_service" {
+  location = google_cloud_run_service.pubsubapp_cloud_run_service.location
+  project  = google_cloud_run_service.pubsubapp_cloud_run_service.project
+  service  = google_cloud_run_service.pubsubapp_cloud_run_service.name
+
+  policy_data = data.google_iam_policy.pubsubapp_cloud_run_service.policy_data
+}
+
+data "google_iam_policy" "pubsubapp_cloud_run_service" {
   binding {
     role = "roles/run.invoker"
 
