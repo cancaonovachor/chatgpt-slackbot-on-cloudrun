@@ -1,5 +1,7 @@
 # chatgpt-slack-bot-on-cloudrun
 
+![screenshot](./docs/ss.png)
+
 ## 概要
 ChatGPTと会話できるSlack BotをGCP上に構築する  
 Botに対するMentionイベントをトリガーに起動、返信を返す。
