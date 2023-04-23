@@ -3,7 +3,10 @@ package slackhandler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"os"
+	"strings"
 
 	"chatgptbot/gpt"
 
@@ -35,6 +38,12 @@ func NewClient(gptClient *gpt.Client, slackClient *slack.Client) *Client {
 }
 
 func (c *Client) SlackEvent(ctx context.Context, reqBody []byte) error {
+	slackBotToken := os.Getenv("SLACK_BOT_TOKEN")
+	api := slack.New(slackBotToken)
+	botUserId, err := getBotUserId(api)
+	if err != nil {
+		log.Fatalf("Error: %s", err)
+	}
 	eventsAPIEvent, err := slackevents.ParseEvent(json.RawMessage(reqBody), slackevents.OptionNoVerifyToken())
 	if err != nil {
 		return err
@@ -43,55 +52,66 @@ func (c *Client) SlackEvent(ctx context.Context, reqBody []byte) error {
 	switch eventsAPIEvent.Type {
 	case slackevents.CallbackEvent:
 		innerEvent := eventsAPIEvent.InnerEvent
-		switch event := innerEvent.Data.(type) {
+		switch ev := innerEvent.Data.(type) {
 		case *slackevents.AppMentionEvent:
-			message, err := c.buildMessage(ctx, event)
-			if err != nil {
-				return err
+			channelId := ev.Channel
+			threadTs := ev.ThreadTimeStamp
+			if threadTs == "" {
+				threadTs = ev.TimeStamp
 			}
 
-			response, err := c.gptClient.GenerateText(message, 500)
+			// Fetch replies
+			replies, _, _, err := api.GetConversationReplies(&slack.GetConversationRepliesParameters{
+				ChannelID: channelId,
+				Timestamp: threadTs,
+			})
 			if err != nil {
-				log.Println("error: ", err.Error())
-				_, _, _ = c.slackClient.PostMessageContext(ctx, event.Channel, slack.MsgOptionText("エラーが起きました\n"+err.Error(), false))
-			} else if response != "" {
-				_, _, _ = c.slackClient.PostMessageContext(ctx,
-					event.Channel,
-					slack.MsgOptionText(response, false),
-					slack.MsgOptionTS(event.TimeStamp),
-				)
+				log.Printf("Error: %s", err)
+
+			}
+
+			// Create threadMessages
+			threadMessages := createThreadMessages(replies, botUserId)
+
+			// Get GPT-3 answer
+			gptAnswerText, err := c.gptClient.GenerateText(threadMessages)
+			if err != nil {
+				log.Printf("Error: %s", err)
+
+			}
+
+			// Reply to the thread
+			_, _, err = api.PostMessage(channelId, slack.MsgOptionText(gptAnswerText, false), slack.MsgOptionTS(threadTs))
+			if err != nil {
+				log.Printf("Error: %s", err)
 			}
 		}
 	}
 	return nil
 }
 
-func (c *Client) buildMessage(ctx context.Context, event *slackevents.AppMentionEvent) (string, error) {
-	if event.ThreadTimeStamp == "" {
-		return event.Text, nil
+func createThreadMessages(replies []slack.Message, botUserId string) []gpt.Message {
+	threadMessages := []gpt.Message{}
+	for _, message := range replies {
+		role := "user"
+		if message.User == botUserId {
+			role = "assistant"
+		}
+
+		content := strings.ReplaceAll(message.Text, fmt.Sprintf("<@%s>", botUserId), "")
+		threadMessages = append(threadMessages, gpt.Message{
+			Role:    role,
+			Content: content,
+		})
 	}
 
-	threadTimestamp := event.ThreadTimeStamp
-	channelID := event.Channel
-	history, _, _, err := c.slackClient.GetConversationReplies(&slack.GetConversationRepliesParameters{
-		ChannelID: channelID,
-		Timestamp: threadTimestamp,
-	})
+	return threadMessages
+}
+
+func getBotUserId(api *slack.Client) (string, error) {
+	resp, err := api.AuthTest()
 	if err != nil {
-		log.Fatalf("Error fetching conversation replies: %v", err)
 		return "", err
 	}
-
-	conversationHistory := ""
-	for _, message := range history {
-		if message.ThreadTimestamp == threadTimestamp {
-			author := "User"
-			if message.BotID != "" {
-				author = "ChatGPT"
-			}
-			conversationHistory += author + ": " + message.Text + "\n"
-		}
-	}
-
-	return conversationHistory + "ChatGPT:", nil
+	return resp.UserID, nil
 }

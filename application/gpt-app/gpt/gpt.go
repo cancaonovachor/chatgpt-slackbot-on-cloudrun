@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"os"
 )
@@ -21,80 +21,57 @@ type Client struct {
 func NewClient() *Client {
 	return &Client{
 		apiKey:      os.Getenv("OPENAI_API_KEY"),
-		apiEndpoint: "https://api.openai.com/v1/completions",
+		apiEndpoint: "https://api.openai.com/v1/chat/completions",
 	}
 }
 
-type ChatRequest struct {
-	Model            string  `json:"model"`
-	Prompt           string  `json:"prompt"`
-	Temperature      float64 `json:"temperature"`
-	MaxTokens        int     `json:"max_tokens"`
-	TopP             float64 `json:"top_p"`
-	FrequencyPenalty float64 `json:"frequency_penalty"`
-	PresencePenalty  float64 `json:"presence_penalty"`
-}
-
-type ChatResponse struct {
-	ID      string `json:"id"`
-	Object  string `json:"object"`
-	Created int    `json:"created"`
-	Model   string `json:"model"`
-	Choices []struct {
-		Text         string      `json:"text"`
-		Index        int         `json:"index"`
-		Logprobs     interface{} `json:"logprobs"`
-		FinishReason string      `json:"finish_reason"`
-	} `json:"choices"`
-	Usage struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-		TotalTokens      int `json:"total_tokens"`
-	} `json:"usage"`
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 // GenerateText generates text using the GPT model.
-func (c *Client) GenerateText(prompt string, maxTokens int) (string, error) {
+func (c *Client) GenerateText(messages []Message) (string, error) {
 	// リクエストを作成する
-	chatRequest := ChatRequest{
-		Model:            "text-davinci-003",
-		Prompt:           prompt,
-		Temperature:      0.7,
-		MaxTokens:        maxTokens,
-		TopP:             1,
-		FrequencyPenalty: 0.1,
-		PresencePenalty:  0.2,
+	requestBody, err := json.Marshal(map[string]interface{}{
+		"model":    "gpt-3.5-turbo",
+		"messages": messages,
+	})
+	if err != nil {
+		return "", err
 	}
 
-	jsonData, _ := json.Marshal(&chatRequest)
-
-	req, err := http.NewRequest("POST", c.apiEndpoint, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", c.apiEndpoint, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return "", err
 	}
 
 	// リクエストにAPIキーを設定する
-	req.Header.Add("Authorization", "Bearer "+c.apiKey)
-	req.Header.Add("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
 
-	// リクエストを送信する
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
-	log.Println("gpt response: ", resp)
 	defer resp.Body.Close()
 
-	r := &ChatResponse{}
-	if err := json.NewDecoder(resp.Body).Decode(r); err != nil {
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		return "", err
 	}
-	log.Println("gpt response: ", r.Choices)
-	text := ""
-	for _, v := range r.Choices {
-		text += fmt.Sprintf("%s\n", v.Text)
+
+	var data map[string]interface{}
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		return "", err
 	}
 
-	return text, err
+	if data["choices"] == nil {
+		return "No response from OpenAI API", nil
+	}
+
+	choices := data["choices"].([]interface{})
+	return choices[0].(map[string]interface{})["message"].(map[string]interface{})["content"].(string), nil
 }

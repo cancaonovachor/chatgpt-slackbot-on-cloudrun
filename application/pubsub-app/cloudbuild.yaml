@@ -1,5 +1,5 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/slack-chatgpt-bot/pubsub-app/image:latest', '.']
+  args: ['build', '-t', 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/slack-chatgpt-bot/pubsub-app/image:${_BUILD_ID}', '.']
 images:
-- 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/slack-chatgpt-bot/pubsub-app/image:latest'
+- 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/slack-chatgpt-bot/pubsub-app/image:${_BUILD_ID}'
