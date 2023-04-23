@@ -5,7 +5,7 @@ resource "google_cloud_run_service" "gptapp_cloud_run_service" {
   template {
     spec {
       containers {
-        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${local.service_name}/${local.service_name_gptapp}/image"
+        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${local.service_name}/${local.service_name_gptapp}/image:${null_resource.gptapp_image_build.id}"
         env {
           name  = "OPENAI_API_KEY"
           value = var.openai_api_key
@@ -38,7 +38,7 @@ resource "google_cloud_run_service" "pubsubapp_cloud_run_service" {
   template {
     spec {
       containers {
-        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${local.service_name}/${local.service_name_pubsubapp}/image"
+        image = "asia-northeast1-docker.pkg.dev/${var.project_id}/${local.service_name}/${local.service_name_pubsubapp}/image:${null_resource.pubsubapp_image_build.id}"
         env {
           name  = "PUBSUB_TOPIC"
           value = google_pubsub_topic.chatgpt_bot_topic.name
