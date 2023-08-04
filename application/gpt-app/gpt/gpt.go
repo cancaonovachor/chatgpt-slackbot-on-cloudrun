@@ -34,7 +34,7 @@ type Message struct {
 func (c *Client) GenerateText(messages []Message) (string, error) {
 	// リクエストを作成する
 	requestBody, err := json.Marshal(map[string]interface{}{
-		"model":    "gpt-3.5-turbo",
+		"model":    "gpt-4",
 		"messages": messages,
 	})
 	if err != nil {
